@@ -26,10 +26,10 @@ export default function LoginPage() {
                 {/* Social Auth */}
                 <div className="px-8 pt-8 space-y-3">
                     <form className="grid grid-cols-2 gap-3">
-                        <button formAction={() => oAuthLogin('google')} className="flex items-center justify-center gap-2 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-white py-2.5 rounded-lg transition-colors text-sm font-bold">
+                        <button formAction={oAuthLogin.bind(null, 'google')} className="flex items-center justify-center gap-2 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-white py-2.5 rounded-lg transition-colors text-sm font-bold">
                             Google
                         </button>
-                        <button formAction={() => oAuthLogin('apple')} className="flex items-center justify-center gap-2 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-white py-2.5 rounded-lg transition-colors text-sm font-bold">
+                        <button formAction={oAuthLogin.bind(null, 'apple')} className="flex items-center justify-center gap-2 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-white py-2.5 rounded-lg transition-colors text-sm font-bold">
                             Apple
                         </button>
                     </form>
