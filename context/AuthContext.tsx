@@ -1,5 +1,4 @@
-'use client';
-
+// ... imports
 import { createContext, useContext, useEffect, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { User } from '@supabase/supabase-js';
@@ -26,6 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const [isPro, setIsPro] = useState(false);
+    const [isDemo, setIsDemo] = useState(false);
 
     useEffect(() => {
         const fetchSession = async () => {
@@ -40,17 +40,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         fetchSession();
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                checkProStatus(session.user.id);
-            } else {
-                setIsPro(false);
+            if (!isDemo) {
+                setUser(session?.user ?? null);
+                if (session?.user) {
+                    checkProStatus(session.user.id);
+                } else {
+                    setIsPro(false);
+                }
             }
             setLoading(false);
         });
 
         return () => subscription.unsubscribe();
-    }, []);
+    }, [isDemo]);
 
     const checkProStatus = async (userId: string) => {
         // Placeholder for pro status check
@@ -59,10 +61,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const loginWithGoogle = async () => {
-        const { error } = await supabase.auth.signInWithOAuth({
+        const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
                 redirectTo: `${window.location.origin}/auth/callback`,
+                queryParams: { prompt: 'select_account' },
             },
         });
         if (error) console.error('Google login error:', error);
@@ -79,14 +82,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const loginWithEmail = async (email: string, pass: string) => {
-        // We use Server Actions for this now, but keeping this for legacy component compatibility
-        // or we can implement client-side login here if needed.
         const { error } = await supabase.auth.signInWithPassword({
             email,
             password: pass
         });
         if (error) throw error;
-        router.refresh(); // Refresh server components
+        router.refresh();
     };
 
     const registerWithEmail = async (email: string, pass: string) => {
@@ -99,20 +100,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const loginWithDemo = () => {
-        // Mock demo login not supported in V2 yet, redirect to login
-        router.push('/login');
+        setIsDemo(true);
+        setIsPro(true); // Demo gets Pro features
+        const mockUser: any = {
+            id: 'demo-user-001',
+            email: 'demo@quantgoal.ai',
+            user_metadata: { full_name: 'Demo Trader' },
+            app_metadata: {},
+            aud: 'authenticated',
+            created_at: new Date().toISOString()
+        };
+        setUser(mockUser);
+        router.push('/dashboard');
+        router.refresh();
     };
 
     const logout = async () => {
-        await supabase.auth.signOut();
-        setUser(null);
-        setIsPro(false);
+        if (isDemo) {
+            setIsDemo(false);
+            setUser(null);
+            setIsPro(false);
+        } else {
+            await supabase.auth.signOut();
+            setUser(null);
+            setIsPro(false);
+        }
         router.push('/login');
         router.refresh();
     };
 
     const upgradeToPro = async () => {
-        // Placeholder
         console.log('Upgrade to Pro requested');
     };
 

@@ -54,6 +54,7 @@ export async function oAuthLogin(provider: Provider) {
         provider,
         options: {
             redirectTo: `${origin}/auth/callback`,
+            queryParams: provider === 'google' ? { prompt: 'select_account' } : {},
         },
     })
 

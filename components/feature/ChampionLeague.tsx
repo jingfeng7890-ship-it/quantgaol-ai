@@ -44,72 +44,86 @@ export function ChampionLeague() {
         }
 
         fetch('/champion_league_data.json')
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to load league data');
+                return res.json();
+            })
             .then(data => {
+                if (!data || !data.models) {
+                    throw new Error('Invalid league data format');
+                }
                 setLeagueData(data);
 
-                // Calculate Consensus
-                const models = Object.values(data.models);
-                const count = models.length;
+                try {
+                    // Calculate Consensus
+                    const models = Object.values(data.models);
+                    const count = models.length;
 
-                const totalBalance = models.reduce((acc: number, m: any) => acc + (m.wallets.core + m.wallets.challenge + m.wallets.high_yield), 0);
-                const avgBalance = totalBalance / count;
-                const totalROI = models.reduce((acc: number, m: any) => acc + m.stats.roi, 0);
+                    if (count === 0) throw new Error('No models found');
 
+                    const totalBalance = models.reduce((acc: number, m: any) => acc + ((m.wallets?.core || 0) + (m.wallets?.challenge || 0) + (m.wallets?.high_yield || 0)), 0);
+                    const avgBalance = totalBalance / count;
+                    const totalROI = models.reduce((acc: number, m: any) => acc + (m.stats?.roi || 0), 0);
 
-                // Detailed Consensus Calculation
-                const avgWallets = models.reduce((acc: any, m: any) => ({
-                    core: (acc.core as number) + (m.wallets.core as number),
-                    challenge: (acc.challenge as number) + (m.wallets.challenge as number),
-                    high_yield: (acc.high_yield as number) + (m.wallets.high_yield as number)
-                }), { core: 0, challenge: 0, high_yield: 0 });
+                    // Detailed Consensus Calculation
+                    const avgWallets = models.reduce((acc: any, m: any) => ({
+                        core: (acc.core as number) + ((m.wallets?.core || 0) as number),
+                        challenge: (acc.challenge as number) + ((m.wallets?.challenge || 0) as number),
+                        high_yield: (acc.high_yield as number) + ((m.wallets?.high_yield || 0) as number)
+                    }), { core: 0, challenge: 0, high_yield: 0 });
 
-                const coreAvg = (avgWallets as any).core / count;
-                const challengeAvg = (avgWallets as any).challenge / count;
-                const highYieldAvg = (avgWallets as any).high_yield / count;
-                const avgTotalBalance = coreAvg + challengeAvg + highYieldAvg;
+                    const coreAvg = (avgWallets as any).core / count;
+                    const challengeAvg = (avgWallets as any).challenge / count;
+                    const highYieldAvg = (avgWallets as any).high_yield / count;
+                    const avgTotalBalance = coreAvg + challengeAvg + highYieldAvg;
 
-                // Aggregate History (Average Daily PnL)
-                const referenceHistory = (models[0] as any).history;
-                const consensusHistory = referenceHistory.map((day: any, idx: number) => {
-                    const dailyTotalPnL = models.reduce((sum: number, m: any) => sum + (((m.history[idx] as any)?.total_pnl as number) || 0), 0);
-                    const dailyBets = models.reduce((sum: number, m: any) => sum + (((m.history[idx] as any)?.bets_placed as number) || 0), 0);
-                    return {
-                        date: day.date,
-                        bets_placed: Math.round(dailyBets / count),
-                        total_pnl: parseFloat((dailyTotalPnL / count).toFixed(2))
+                    // Aggregate History (Average Daily PnL)
+                    const referenceHistory = (models[0] as any).history || [];
+                    const consensusHistory = referenceHistory.map((day: any, idx: number) => {
+                        const dailyTotalPnL = models.reduce((sum: number, m: any) => sum + (((m.history?.[idx] as any)?.total_pnl as number) || 0), 0);
+                        const dailyBets = models.reduce((sum: number, m: any) => sum + (((m.history?.[idx] as any)?.bets_placed as number) || 0), 0);
+                        return {
+                            date: day.date,
+                            bets_placed: Math.round(dailyBets / count),
+                            total_pnl: parseFloat((dailyTotalPnL / count).toFixed(2))
+                        };
+                    });
+
+                    const consensusModel = {
+                        id: "consensus",
+                        name: "QuantGoal Consensus",
+                        style: "Weighted Average",
+                        stats: {
+                            roi: parseFloat((totalROI / count).toFixed(2)),
+                            total_pnl: parseFloat((avgTotalBalance - 10000).toFixed(2)),
+                            risk: 4, alpha: 7, accuracy: 8, recovery: 9, consist: 10
+                        },
+                        wallets: {
+                            total: avgTotalBalance,
+                            core: coreAvg,
+                            challenge: challengeAvg,
+                            high_yield: highYieldAvg
+                        },
+                        history: consensusHistory,
+                        breakdown: { Core: 92, Advanced: 88, Stability: 95 }
                     };
-                });
 
-                const consensusModel = {
-                    id: "consensus",
-                    name: "QuantGoal Consensus",
-                    style: "Weighted Average",
-                    stats: {
-                        roi: parseFloat((totalROI / count).toFixed(2)),
-                        total_pnl: parseFloat((avgTotalBalance - 10000).toFixed(2)),
-                        risk: 4, alpha: 7, accuracy: 8, recovery: 9, consist: 10
-                    },
-                    wallets: {
-                        total: avgTotalBalance,
-                        core: coreAvg,
-                        challenge: challengeAvg,
-                        high_yield: highYieldAvg
-                    },
-                    history: consensusHistory,
-                    breakdown: { Core: 92, Advanced: 88, Stability: 95 }
-                };
+                    setConsensus(consensusModel);
+                } catch (err) {
+                    console.error("Error calculating consensus:", err);
+                }
 
-                setConsensus(consensusModel);
                 setLoading(false);
 
                 // Fetch User History for Module 3
                 fetch('/parlay_history.json')
                     .then(res => res.json())
                     .then(history => {
+                        if (!Array.isArray(history)) return;
+
                         const dailyStats: any = {};
                         history.forEach((bet: any) => {
-                            const date = bet.date.split(' ')[0];
+                            const date = bet.date ? bet.date.split(' ')[0] : 'Unknown';
                             if (!dailyStats[date]) dailyStats[date] = { date, bets_placed: 0, total_pnl: 0, won_count: 0 };
                             dailyStats[date].bets_placed += 1;
                             dailyStats[date].total_pnl += bet.pnl || 0;
@@ -130,18 +144,17 @@ export function ChampionLeague() {
                                 pnl: totalPnl.toFixed(2)
                             },
                             system: {
-                                roi: consensusModel.stats.roi,
-                                winRate: consensusModel.stats.accuracy * 10 // approximation
+                                roi: consensus ? consensus.stats.roi : 0, // Fallback if consensus failed
+                                winRate: consensus ? consensus.stats.accuracy * 10 : 80
                             }
                         });
                     })
                     .catch(e => console.error("User history load failed", e));
 
-                // Fetch Daily Top Picks (Module 4 - Consensus Top 4)
+                // Fetch Daily Top Picks
                 fetch('/daily_top_picks.json')
                     .then(res => res.json())
                     .then(data => {
-                        // Ensure data is an array
                         const picks = Array.isArray(data) ? data : [];
                         setDailyPicks(picks);
                         const total = picks.length;
@@ -156,7 +169,11 @@ export function ChampionLeague() {
                     })
                     .catch(e => console.error("Daily picks load failed", e));
             })
-            .catch(err => console.error("Failed to load league data:", err));
+            .catch(err => {
+                console.error("Failed to load league data:", err);
+                setLoading(false);
+                // Consider setting an error state to display a fallback UI
+            });
     }, []);
 
     const addToast = (message: string, type: 'success' | 'info' = 'info') => {
