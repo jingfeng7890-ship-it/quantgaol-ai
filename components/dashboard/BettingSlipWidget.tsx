@@ -1,19 +1,13 @@
 'use client';
 
-import { useBettingSlip } from '@/context/BettingSlipContext';
-import { X, Trash2, ChevronUp, ChevronDown, DollarSign } from 'lucide-react';
-import { useState } from 'react';
-
-interface Wallet {
-    spend: (amount: number, description: string) => boolean;
-}
-
-import { useBettingSlip } from '@/context/BettingSlipContext';
-import { useWallet } from '@/context/WalletContext'; // Use Context directly
+import { useBettingSlip } from '../../context/BettingSlipContext';
+import { useWallet } from '../../context/WalletContext';
 import { X, Trash2, ChevronUp, ChevronDown, DollarSign, CheckCircle } from 'lucide-react';
 import { useState } from 'react';
 
-// Removed Wallet Interface Prop as we use context now
+
+
+
 
 export function BettingSlipWidget() {
     const { items, removeFromSlip, clearSlip, isOpen, setIsOpen } = useBettingSlip();
