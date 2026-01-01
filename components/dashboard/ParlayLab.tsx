@@ -219,10 +219,11 @@ export function ParlayLab({ wallet }: { wallet?: Wallet }) {
                         }, {})).sort(([a], [b]) => new Date(b as string).getTime() - new Date(a as string).getTime()).map(([date, tickets]: any, i) => (
                             <div key={i} className="flex gap-4 p-4 bg-zinc-900/40 border border-zinc-800 rounded-lg hover:border-zinc-700 transition-colors">
                                 {/* Left: Date Anchor */}
+                                {/* Left: Date Anchor */}
                                 <div className="w-16 flex flex-col items-center justify-start pt-1 border-r border-zinc-800 pr-4 shrink-0">
-                                    <span className="text-sm font-black text-zinc-300 font-mono">{(date as string).slice(5)}</span>
+                                    <span className="text-sm font-black text-zinc-300 font-mono">{(date && typeof date === 'string') ? date.slice(5) : '--'}</span>
                                     <div className="flex flex-col items-center mt-2 gap-1 text-[10px] text-zinc-600 uppercase font-bold">
-                                        <span>{(date as string).slice(0, 4)}</span>
+                                        <span>{(date && typeof date === 'string') ? date.slice(0, 4) : '----'}</span>
                                         {i === 0 && <span className="bg-emerald-900/30 text-emerald-500 px-1 rounded animate-pulse">TODAY</span>}
                                     </div>
                                 </div>
@@ -248,22 +249,22 @@ export function ParlayLab({ wallet }: { wallet?: Wallet }) {
 
                                                 {/* Mini Legs Preview */}
                                                 <div className="space-y-0.5 mb-2">
-                                                    {t.legs.slice(0, 3).map((leg: any, k: number) => (
+                                                    {Array.isArray(t.legs) && t.legs.slice(0, 3).map((leg: any, k: number) => (
                                                         <div key={k} className="flex items-center justify-between text-[9px] text-zinc-600">
-                                                            <span className="truncate max-w-[100px] text-zinc-500">{leg.match.split(' vs ')[0]}</span>
+                                                            <span className="truncate max-w-[100px] text-zinc-500">{leg.match ? leg.match.split(' vs ')[0] : 'Match'}</span>
                                                             <span className={leg.result === 'Won' ? 'text-emerald-500' : leg.result === 'Lost' ? 'text-red-500' : 'text-yellow-600'}>
                                                                 {leg.result === 'Won' ? '✔' : leg.result === 'Lost' ? '✘' : '•'}
                                                             </span>
                                                         </div>
                                                     ))}
-                                                    {t.legs.length > 3 && <div className="text-[9px] text-zinc-700 text-center">+{t.legs.length - 3} more</div>}
+                                                    {Array.isArray(t.legs) && t.legs.length > 3 && <div className="text-[9px] text-zinc-700 text-center">+{t.legs.length - 3} more</div>}
                                                 </div>
 
                                                 <div className="flex items-center justify-between pt-2 border-t border-zinc-900 mt-auto">
                                                     <div className="flex items-center gap-1 text-[9px] text-zinc-600 font-mono">
-                                                        <Lock size={8} /> {t.id.slice(0, 6)}
+                                                        <Lock size={8} /> {t.id ? String(t.id).slice(0, 6) : 'PROXY'}
                                                     </div>
-                                                    <span className="text-[10px] font-mono text-zinc-400">@{t.total_odds}</span>
+                                                    <span className="text-[10px] font-mono text-zinc-400">@{t.total_odds || '0.00'}</span>
                                                 </div>
                                             </div>
                                         ))}

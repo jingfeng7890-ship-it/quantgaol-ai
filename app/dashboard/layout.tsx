@@ -22,7 +22,7 @@ import {
 import { cn } from '@/components/ui/Button';
 import { BettingSlipProvider } from '@/context/BettingSlipContext';
 import { BettingSlipWidget } from '@/components/dashboard/BettingSlipWidget';
-import { useWallet } from '@/hooks/useWallet';
+import { WalletProvider, useWallet } from '@/context/WalletContext'; // Import from new Context
 
 // Sidebar Item Component
 function SidebarItem({ icon: Icon, label, active = false, href }: { icon: any, label: string, active?: boolean, href: string }) {
@@ -41,9 +41,15 @@ function SidebarItem({ icon: Icon, label, active = false, href }: { icon: any, l
     );
 }
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+function DashboardContent({ children }: { children: React.ReactNode }) {
     const { user, loading, logout, isPro } = useAuth();
+    // We can use wallet here via context if needed, but primarily for passing to children or Widget
+    // Actually BettingSlipWidget handles its own wallet usage now via context if we update it.
+    // But BettingSlipWidget current code expects 'wallet' prop.
+    // We will update BettingSlipWidget to use useWallet() internally too, OR pass it here. 
+    // Let's pass it for now to be safe with existing Widget code until we update it.
     const wallet = useWallet();
+
     const router = useRouter();
     const pathname = usePathname();
     const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -185,7 +191,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </div>
                 </main>
             </div>
+            {/* 
+              Pass wallet from context to BettingSlipWidget. 
+              Ideally BettingSlipWidget should consume context internally, 
+              but to avoid modifying it right now, we pass it.
+            */}
             <BettingSlipWidget wallet={wallet} />
         </BettingSlipProvider>
+    );
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+    return (
+        <WalletProvider>
+            <DashboardContent>
+                {children}
+            </DashboardContent>
+        </WalletProvider>
     );
 }

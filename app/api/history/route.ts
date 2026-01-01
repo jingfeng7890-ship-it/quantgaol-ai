@@ -71,14 +71,38 @@ export async function POST(request: Request) {
         };
 
         const supabase = getSupabase();
-        const { data, error } = await supabase
+
+        // 1. Get User
+        const { data: { user } } = await supabase.auth.getUser();
+
+        // 2. Insert into parlay_tickets (The Bet Details)
+        const { data: ticketData, error: ticketError } = await supabase
             .from('parlay_tickets')
             .insert(newEntry)
-            .select();
+            .select()
+            .single();
 
-        if (error) throw error;
+        if (ticketError) throw ticketError;
 
-        return NextResponse.json({ success: true, entry: data[0] });
+        // 3. If User exists, Insert into user_bets (The Link)
+        if (user) {
+            const userBet = {
+                user_id: user.id,
+                ticket_id: ticketData.id, // UUID from parlay_tickets
+                stake: parlay.stake || 100,
+                status: "PENDING",
+                pnl: 0,
+                selection_details: parlay.legs // Snapshot for reference
+            };
+
+            const { error: betError } = await supabase
+                .from('user_bets')
+                .insert(userBet);
+
+            if (betError) console.error("Failed to link user bet:", betError);
+        }
+
+        return NextResponse.json({ success: true, entry: ticketData });
 
     } catch (error) {
         console.error('Failed to save parlay:', error);

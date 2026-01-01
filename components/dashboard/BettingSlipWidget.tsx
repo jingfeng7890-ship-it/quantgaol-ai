@@ -8,18 +8,28 @@ interface Wallet {
     spend: (amount: number, description: string) => boolean;
 }
 
-export function BettingSlipWidget({ wallet }: { wallet: Wallet }) {
+import { useBettingSlip } from '@/context/BettingSlipContext';
+import { useWallet } from '@/context/WalletContext'; // Use Context directly
+import { X, Trash2, ChevronUp, ChevronDown, DollarSign, CheckCircle } from 'lucide-react';
+import { useState } from 'react';
+
+// Removed Wallet Interface Prop as we use context now
+
+export function BettingSlipWidget() {
     const { items, removeFromSlip, clearSlip, isOpen, setIsOpen } = useBettingSlip();
+    const wallet = useWallet(); // Direct Context Usage
     const [stake, setStake] = useState('100');
+    const [statusMsg, setStatusMsg] = useState<string | null>(null);
 
     if (items.length === 0) return null;
 
     const totalOdds = items.reduce((acc, item) => acc * item.odds, 1);
     const potentialReturn = (parseFloat(stake || '0') * totalOdds).toFixed(2);
-    const isTooManyLegs = items.length > 8; // Example limit
 
     const handlePlaceBet = async () => {
         if (!wallet) return;
+        setStatusMsg(null);
+
         const amount = parseFloat(stake) || 0;
         if (amount <= 0) return;
 
@@ -29,7 +39,8 @@ export function BettingSlipWidget({ wallet }: { wallet: Wallet }) {
         if (wallet.spend(amount, desc)) {
             // Record to History Ledger
             try {
-                await fetch('/api/history', {
+                // Non-blocking fetch
+                fetch('/api/history', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -43,15 +54,23 @@ export function BettingSlipWidget({ wallet }: { wallet: Wallet }) {
                             odds: l.odds.toFixed(2)
                         }))
                     })
-                });
+                }).catch(e => console.error("History API Error:", e));
+
+                // Success Feedback (Non-blocking)
+                setStatusMsg(`Parlay Placed! Potential Return: $${potentialReturn}`);
+
+                // Delay clearing slip slightly to let user see success message
+                setTimeout(() => {
+                    clearSlip();
+                    setStatusMsg(null);
+                }, 2000);
+
             } catch (err) {
                 console.error("Failed to record custom parlay to ledger", err);
             }
-
-            alert(`Parlay Placed! Potential Return: $${potentialReturn}`);
-            clearSlip();
         } else {
-            alert("Insufficient Funds");
+            setStatusMsg("Insufficient Funds");
+            setTimeout(() => setStatusMsg(null), 2000);
         }
     };
 
@@ -84,6 +103,14 @@ export function BettingSlipWidget({ wallet }: { wallet: Wallet }) {
                     </button>
                 </div>
             </div>
+
+            {/* Status Feedback Overlay */}
+            {statusMsg && (
+                <div className="absolute inset-0 bg-black/90 z-50 flex flex-col items-center justify-center text-center p-4 animate-fade-in">
+                    <CheckCircle className="text-emerald-500 mb-2" size={32} />
+                    <p className="text-emerald-400 font-bold text-sm">{statusMsg}</p>
+                </div>
+            )}
 
             {/* Items */}
             <div className="max-h-[300px] overflow-y-auto p-2 space-y-2 bg-zinc-950">
