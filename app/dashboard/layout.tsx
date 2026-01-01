@@ -22,7 +22,6 @@ import {
 import { cn } from '@/components/ui/Button';
 import { BettingSlipProvider } from '@/context/BettingSlipContext';
 import { BettingSlipWidget } from '@/components/dashboard/BettingSlipWidget';
-import { WalletProvider, useWallet } from '@/context/WalletContext'; // Import from new Context
 
 // Sidebar Item Component
 function SidebarItem({ icon: Icon, label, active = false, href }: { icon: any, label: string, active?: boolean, href: string }) {
@@ -198,10 +197,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     return (
-        <WalletProvider>
-            <DashboardContent>
-                {children}
-            </DashboardContent>
-        </WalletProvider>
+        <DashboardContent>
+            {children}
+        </DashboardContent>
     );
 }

@@ -12,7 +12,7 @@ export function createClient() {
         return {
             auth: {
                 getSession: async () => ({ data: { session: null } }),
-                onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => { } } } }),
+                onAuthStateChange: (callback: any) => ({ data: { subscription: { unsubscribe: () => { } } } }),
                 signInWithOAuth: async () => ({ error: { message: 'Missing Envs' } }),
                 signInWithPassword: async () => ({ error: { message: 'Missing Envs' } }),
                 signUp: async () => ({ error: { message: 'Missing Envs' } }),

@@ -1,0 +1,35 @@
+﻿
+> quantgoal@0.1.0 build
+> next build
+
+   鈻?Next.js 16.0.8 (Turbopack)
+
+node.exe :  鈿?The "middleware" file convention is deprecated. Please use "proxy" i
+nstead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+所在位置 行:1 字符: 1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ( 鈿?The "middlew...leware-to-proxy:St 
+   ring) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+   Creating an optimized production build ...
+ 鉁?Compiled successfully in 11.7s
+   Running TypeScript ...
+   Collecting page data using 15 workers ...
+[dotenv@17.2.3] injecting env (11) from backend\.env -- tip: 馃摗 add observability to secrets: https://dotenvx.com/ops
+   Generating static pages using 15 workers (0/14) ...
+[dotenv@17.2.3] injecting env (11) from backend\.env -- tip: 馃梻锔?backup and recover secrets: https://dotenvx.com/ops
+   Generating static pages using 15 workers (3/14) 
+   Generating static pages using 15 workers (6/14) 
+Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/
+prerender-error
+Error: useWallet must be used within a WalletProvider
+    at i (C:\Users\nirva\quantgoal.ai\.next\server\chunks\ssr\_7b8e5804._.js:1:390
+4)
+    at fL (C:\Users\nirva\quantgoal.ai\.next\server\chunks\ssr\_c9d434e2._.js:15:1
+706) {
+  digest: '3204615256'
+}
+Export encountered an error on /page: /, exiting the build.
+ 猕?Next.js build worker exited with code: 1 and signal: null
