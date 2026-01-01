@@ -1,7 +1,7 @@
 
 import { createClient } from '../../../utils/supabase/server'; // Use the project's own helper
 import { createClient as createAdminClient } from '@supabase/supabase-js';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +11,7 @@ const supabaseAdmin = createAdminClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function GET(req: any) {
+export async function GET(req: NextRequest) {
     try {
         let user = null;
 
