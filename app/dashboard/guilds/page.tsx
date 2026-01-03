@@ -21,40 +21,70 @@ export default function GuildsPage() {
     const [loading, setLoading] = useState(true);
     const [joinedGuilds, setJoinedGuilds] = useState<string[]>([]);
 
-    const handleCreateGuild = () => {
-        alert("Feature Coming Soon: Create your own syndicate in V3!");
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const [gRes, mRes] = await Promise.all([
+                fetch('/api/guilds'),
+                fetch('/api/guilds/memberships')
+            ]);
+
+            const gData = await gRes.json();
+            const mData = await mRes.json();
+
+            if (gData.guilds) {
+                const mappedGuilds = gData.guilds.map((g: any) => ({
+                    id: g.id,
+                    name: g.name,
+                    strategy: g.strategy,
+                    aum: `$${(Number(g.total_capital) / 1000).toFixed(1)}k`,
+                    members: 0, // We could count this but let's keep it simple for now or fetch member count
+                    perf_7d: `${Number(g.roi_7d).toFixed(1)}%`,
+                    min_entry: `$${g.min_entry}`,
+                    risk_level: g.risk_level
+                }));
+                setGuilds(mappedGuilds);
+            }
+
+            if (mData.memberships) {
+                setJoinedGuilds(mData.memberships.map((m: any) => m.guild_id));
+            }
+        } catch (e) {
+            console.error("Failed to fetch guilds", e);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleJoinGuild = (id: string, name: string) => {
-        if (joinedGuilds.includes(id)) return;
-        setJoinedGuilds(prev => [...prev, id]);
-        alert(`Successfully joined ${name}! You will now receive their signals.`);
+    const handleCreateGuild = () => {
+        alert("Feature Coming Soon: Create your own syndicate with Pro status!");
+    };
+
+    const handleJoinGuild = async (id: string, name: string, minEntry: string) => {
+        const amount = parseInt(minEntry.replace('$', ''));
+        if (confirm(`Confirm staking ${amount} CR to join ${name}?`)) {
+            try {
+                const res = await fetch('/api/guilds/join', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ guildId: id, amount })
+                });
+
+                if (res.ok) {
+                    alert(`Successfully joined ${name}!`);
+                    fetchData();
+                } else {
+                    const err = await res.json();
+                    alert(`Error joining guild: ${err.error}`);
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
     };
 
     useEffect(() => {
-        fetch('/guilds_data.json')
-            .then(res => res.json())
-            .then(data => {
-                if (data.guilds) {
-                    // MAP RAW DATA TO UI SCHEMA
-                    const mappedGuilds = data.guilds.map((g: any) => ({
-                        id: g.id,
-                        name: g.name,
-                        strategy: "Balanced Growth", // Default
-                        aum: `$${(g.total_capital / 1000).toFixed(1)}k`,
-                        members: g.members?.length || 0,
-                        perf_7d: `${g.stats?.roi?.toFixed(1) || '0.0'}%`,
-                        min_entry: "$500", // Default
-                        risk_level: "Medium Risk" // Default
-                    }));
-                    setGuilds(mappedGuilds);
-                }
-                setLoading(false);
-            })
-            .catch(err => {
-                console.error("Failed to load guilds", err);
-                setLoading(false);
-            });
+        fetchData();
     }, []);
 
     return (
@@ -132,7 +162,7 @@ export default function GuildsPage() {
                                     {/* Actions */}
                                     <div className="flex gap-3">
                                         <Button
-                                            onClick={() => handleJoinGuild(guild.id, guild.name)}
+                                            onClick={() => handleJoinGuild(guild.id, guild.name, guild.min_entry)}
                                             disabled={isJoined}
                                             className={`flex-1 font-bold border-0 ${isJoined ? 'bg-emerald-600 text-white hover:bg-emerald-600 cursor-default' : 'bg-white text-black hover:bg-zinc-200'}`}
                                         >

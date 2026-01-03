@@ -9,6 +9,9 @@ interface AuthContextType {
     user: User | null;
     loading: boolean;
     isPro: boolean;
+    xp: number;
+    rankLevel: number;
+    governorTitle: string;
     loginWithGoogle: () => Promise<void>;
     loginWithApple: () => Promise<void>;
     loginWithEmail: (email: string, pass: string) => Promise<void>;
@@ -16,6 +19,7 @@ interface AuthContextType {
     loginWithDemo: () => void;
     logout: () => Promise<void>;
     upgradeToPro: () => Promise<void>;
+    refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -26,16 +30,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const [isPro, setIsPro] = useState(false);
+    const [xp, setXp] = useState(0);
+    const [rankLevel, setRankLevel] = useState(1);
+    const [governorTitle, setGovernorTitle] = useState('Apprentice Analyst');
     const [isDemo, setIsDemo] = useState(false);
 
     useEffect(() => {
         const fetchSession = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             setUser(session?.user ?? null);
-            setLoading(false);
             if (session?.user) {
-                checkProStatus(session.user.id);
+                await fetchProfile(session.user.id);
             }
+            setLoading(false);
         };
 
         fetchSession();
@@ -44,9 +51,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (!isDemo) {
                 setUser(session?.user ?? null);
                 if (session?.user) {
-                    checkProStatus(session.user.id);
+                    fetchProfile(session.user.id);
                 } else {
                     setIsPro(false);
+                    setXp(0);
+                    setRankLevel(1);
+                    setGovernorTitle('Apprentice Analyst');
                 }
             }
             setLoading(false);
@@ -55,10 +65,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return () => subscription.unsubscribe();
     }, [isDemo]);
 
-    const checkProStatus = async (userId: string) => {
-        // Placeholder for pro status check
-        // In the future, query 'profiles' or 'subscriptions' table
-        setIsPro(false);
+    const fetchProfile = async (userId: string) => {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
+
+        if (data && !error) {
+            setIsPro(data.is_pro || false);
+            setXp(data.xp || 0);
+            setRankLevel(data.rank_level || 1);
+            setGovernorTitle(data.governor_title || 'Apprentice Analyst');
+        }
+    };
+
+    const refreshProfile = async () => {
+        if (user) await fetchProfile(user.id);
     };
 
     const loginWithGoogle = async () => {
@@ -135,7 +158,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, isPro, loginWithGoogle, loginWithApple, loginWithEmail, registerWithEmail, loginWithDemo, logout, upgradeToPro }}>
+        <AuthContext.Provider value={{
+            user, loading, isPro, xp, rankLevel, governorTitle,
+            loginWithGoogle, loginWithApple, loginWithEmail, registerWithEmail,
+            loginWithDemo, logout, upgradeToPro, refreshProfile
+        }}>
             {children}
         </AuthContext.Provider>
     );

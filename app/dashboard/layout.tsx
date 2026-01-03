@@ -5,6 +5,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
+import { TopUpModal } from '@/components/dashboard/TopUpModal';
+import { NotificationCenter } from '@/components/dashboard/NotificationCenter';
 import {
     Terminal,
     Fingerprint,
@@ -17,7 +19,13 @@ import {
     Search,
     Menu,
     Users,
-    X
+    Shield,
+    Landmark,
+    X,
+    TrendingUp,
+    History,
+    Zap,
+    Plus
 } from 'lucide-react';
 import { cn } from '@/components/ui/Button';
 import { BettingSlipProvider } from '@/context/BettingSlipContext';
@@ -41,12 +49,13 @@ function SidebarItem({ icon: Icon, label, active = false, href }: { icon: any, l
 }
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
-    const { user, loading, logout, isPro } = useAuth();
+    const { user, loading, logout, isPro, governorTitle, xp, rankLevel } = useAuth();
     // Wallet is now handled internally by BettingSlipWidget via context
 
     const router = useRouter();
     const pathname = usePathname();
-    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isTopUpOpen, setIsTopUpOpen] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
 
     // Protect Route
@@ -65,7 +74,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 {/* Sidebar */}
                 <aside className={cn(
                     "fixed inset-y-0 left-0 z-50 w-64 bg-zinc-950 border-r border-zinc-800 transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0",
-                    !sidebarOpen && "-translate-x-full lg:hidden"
+                    !isSidebarOpen && "-translate-x-full lg:hidden"
                 )}>
                     <div className="h-full flex flex-col">
                         {/* Logo Area */}
@@ -85,6 +94,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                             <SidebarItem icon={LayoutDashboard} label="Overview" href="/dashboard" active={pathname === '/dashboard'} />
                             <SidebarItem icon={LineChart} label="Live Signals" href="/dashboard/signals" active={pathname === '/dashboard/signals'} />
                             <SidebarItem icon={Wallet} label="Bankroll Manager" href="/dashboard/bankroll" active={pathname === '/dashboard/bankroll'} />
+                            <SidebarItem icon={Shield} label="Black Swan Terminal" href="/dashboard/options" active={pathname === '/dashboard/options'} />
+                            <SidebarItem icon={Landmark} label="The Parliament" href="/dashboard/governance" active={pathname === '/dashboard/governance'} />
                             <SidebarItem icon={Users} label="Fund Guilds" href="/dashboard/guilds" active={pathname === '/dashboard/guilds'} />
 
                             <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mt-8 mb-4 px-3">System</div>
@@ -93,29 +104,59 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                         </nav>
 
                         {/* User Section */}
-                        <div className="p-4 border-t border-zinc-800">
-                            <div className="flex items-center gap-3 px-3 py-3 rounded-md bg-zinc-900/50 border border-zinc-800">
-                                <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-zinc-700 to-zinc-600 flex items-center justify-center text-xs font-bold text-white">
-                                    {user.email?.[0].toUpperCase()}
+                        <div className="p-4 border-t border-zinc-800 bg-zinc-950/50">
+                            <div className="flex flex-col gap-3">
+                                <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-zinc-900/50 border border-zinc-800 group transition-all hover:bg-zinc-900">
+                                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-sm font-black text-white shadow-lg shadow-blue-900/20">
+                                        {user.email?.[0].toUpperCase()}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-bold text-white truncate">{user.email?.split('@')[0]}</p>
+                                        <div className="flex items-center gap-1.5">
+                                            <p className="text-[10px] text-blue-400 font-black uppercase tracking-widest">{governorTitle}</p>
+                                            {isPro && (
+                                                <span className="px-1 py-0.5 bg-yellow-500 text-black text-[8px] font-black rounded uppercase leading-none">PRO</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <button onClick={() => logout()} className="text-zinc-600 hover:text-white transition-colors p-2">
+                                        <LogOut size={16} />
+                                    </button>
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-white truncate">{user.email?.split('@')[0]}</p>
-                                    <p className="text-xs text-zinc-400 truncate">Pro Member</p>
+
+                                {/* XP Progress Bar */}
+                                <div className="px-3 space-y-1.5">
+                                    <div className="flex justify-between text-[9px] font-black text-zinc-500 uppercase tracking-tighter">
+                                        <span>Rank {rankLevel}</span>
+                                        <span className="text-zinc-400">{xp.toLocaleString()} XP</span>
+                                    </div>
+                                    <div className="h-1 bg-zinc-900 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-blue-500 transition-all duration-1000"
+                                            style={{ width: `${Math.min((xp / (rankLevel === 1 ? 1000 : rankLevel === 2 ? 5000 : 20000)) * 100, 100)}%` }}
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={() => setIsTopUpOpen(true)}
+                                        className="w-full mt-2 py-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 text-[10px] font-black uppercase tracking-widest rounded-lg border border-blue-500/20 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <Plus size={12} /> Refill Treasury
+                                    </button>
                                 </div>
-                                <button onClick={() => logout()} className="text-zinc-500 hover:text-white transition-colors">
-                                    <LogOut size={16} />
-                                </button>
                             </div>
                         </div>
                     </div>
                 </aside>
 
+                <TopUpModal isOpen={isTopUpOpen} onClose={() => setIsTopUpOpen(false)} />
+
                 {/* Main Content */}
                 <main className="flex-1 flex flex-col min-w-0 bg-black">
                     {/* Top Bar */}
                     <header className="h-16 flex items-center justify-between px-4 lg:px-8 border-b border-zinc-800 bg-black/50 backdrop-blur-sm sticky top-0 z-40">
-                        <div className="flex items-center gap-4">
-                            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden text-zinc-400 hover:text-white">
+                        <div className="flex items-center gap-3">
+                            <NotificationCenter />
+                            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden text-zinc-400 hover:text-white">
                                 <Menu size={24} />
                             </button>
                             <h1 className="text-lg font-semibold text-white hidden sm:block">Dashboard</h1>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Trophy, TrendingUp, Shield, Zap, Target, X, History, Lock, Bell, Check, Activity, Medal, Wallet } from 'lucide-react';
+import { Trophy, TrendingUp, Shield, Zap, Target, X, History, Lock, Bell, Check, Activity, Medal, Wallet, Landmark } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { RadarChart as RechartsRadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, Tooltip } from 'recharts';
 import { RadarChart } from './RadarChart';
@@ -24,6 +24,8 @@ export function ChampionLeague() {
     const [statsSummary, setStatsSummary] = useState<any>(null);
     const [dailyPicks, setDailyPicks] = useState<any[]>([]);
     const [picksSummary, setPicksSummary] = useState<any>(null);
+    const [achievements, setAchievements] = useState<any[]>([]);
+    const [governance, setGovernance] = useState<any[]>([]);
 
     // Phase 4: Access Control & user Interaction
     const [hasAccess, setHasAccess] = useState(false);
@@ -43,7 +45,7 @@ export function ChampionLeague() {
             }
         }
 
-        fetch('/champion_league_data.json')
+        fetch('/api/league')
             .then(res => {
                 if (!res.ok) throw new Error('Failed to load league data');
                 return res.json();
@@ -115,27 +117,20 @@ export function ChampionLeague() {
 
                 setLoading(false);
 
-                // Fetch User History for Module 3
-                fetch('/parlay_history.json')
+                // Fetch User History for Module 3 (Supabase)
+                fetch('/api/history')
                     .then(res => res.json())
-                    .then(history => {
-                        if (!Array.isArray(history)) return;
+                    .then(data => {
+                        const history = data.raw || [];
+                        const aggregatedHistory = data.history || [];
 
-                        const dailyStats: any = {};
-                        history.forEach((bet: any) => {
-                            const date = bet.date ? bet.date.split(' ')[0] : 'Unknown';
-                            if (!dailyStats[date]) dailyStats[date] = { date, bets_placed: 0, total_pnl: 0, won_count: 0 };
-                            dailyStats[date].bets_placed += 1;
-                            dailyStats[date].total_pnl += bet.pnl || 0;
-                            if (bet.status === 'WON') dailyStats[date].won_count += 1;
-                        });
-                        setUserHistory(Object.values(dailyStats).sort((a: any, b: any) => b.date.localeCompare(a.date)));
+                        setUserHistory(aggregatedHistory);
 
                         // Calculate Summaries
                         const totalBets = history.length;
                         const wonBets = history.filter((b: any) => b.status === 'WON').length;
-                        const totalPnl = history.reduce((acc: number, b: any) => acc + (b.pnl || 0), 0);
-                        const totalStake = history.reduce((acc: number, b: any) => acc + (b.stake || 0), 0);
+                        const totalPnl = history.reduce((acc: number, b: any) => acc + (Number(b.pnl) || 0), 0);
+                        const totalStake = history.reduce((acc: number, b: any) => acc + (Number(b.stake) || 0), 0);
 
                         setStatsSummary({
                             user: {
@@ -144,7 +139,7 @@ export function ChampionLeague() {
                                 pnl: totalPnl.toFixed(2)
                             },
                             system: {
-                                roi: consensus ? consensus.stats.roi : 0, // Fallback if consensus failed
+                                roi: consensus ? consensus.stats.roi : 0,
                                 winRate: consensus ? consensus.stats.accuracy * 10 : 80
                             }
                         });
@@ -168,6 +163,18 @@ export function ChampionLeague() {
                         });
                     })
                     .catch(e => console.error("Daily picks load failed", e));
+
+                // Fetch AI Achievements (RPG System)
+                fetch('/api/achievements')
+                    .then(res => res.json())
+                    .then(data => setAchievements(data))
+                    .catch(e => console.error("Achievements load failed", e));
+
+                // Fetch Governance (Parliament)
+                fetch('/api/governance')
+                    .then(res => res.json())
+                    .then(data => setGovernance(data.filter((p: any) => p.status === 'EXECUTED')))
+                    .catch(e => console.error("Governance fetch failed", e));
             })
             .catch(err => {
                 console.error("Failed to load league data:", err);
@@ -206,6 +213,42 @@ export function ChampionLeague() {
 
             return newFollowing;
         });
+    };
+
+    const renderBadges = (modelId: string) => {
+        const modelAchievements = achievements.filter(a => a.model_id === modelId);
+        if (modelAchievements.length === 0) return null;
+
+        return (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+                {modelAchievements.map((ach, i) => {
+                    let Icon = Medal;
+                    let color = "text-zinc-400 border-zinc-700 bg-zinc-800/50";
+
+                    if (ach.achievement_type === 'God Slayer') {
+                        Icon = Zap;
+                        color = "text-orange-400 border-orange-500/30 bg-orange-950/20";
+                    } else if (ach.achievement_type === 'Iron Shield') {
+                        Icon = Shield;
+                        color = "text-blue-400 border-blue-500/30 bg-blue-950/20";
+                    } else if (ach.achievement_type === 'Alpha King') {
+                        Icon = Trophy;
+                        color = "text-yellow-400 border-yellow-500/30 bg-yellow-950/20";
+                    }
+
+                    return (
+                        <div
+                            key={i}
+                            title={ach.description}
+                            className={`flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9px] font-black uppercase tracking-tighter cursor-help transition-transform hover:scale-110 ${color}`}
+                        >
+                            <Icon size={10} />
+                            {ach.achievement_type}
+                        </div>
+                    );
+                })}
+            </div>
+        );
     };
 
     if (loading || !leagueData) {
@@ -331,6 +374,20 @@ export function ChampionLeague() {
                                     </div>
                                     <h3 className="text-2xl font-black text-white mb-2 tracking-tight">QuantGoal Consensus</h3>
 
+                                    {/* Active Governance Policies */}
+                                    {governance.length > 0 && (
+                                        <div className="flex flex-wrap justify-center gap-2 mb-4">
+                                            {governance.map((p: any) => (
+                                                <div key={p.id} className="group relative flex items-center gap-1.5 px-2 py-1 bg-blue-500/10 border border-blue-500/30 rounded-lg animate-pulse" title={p.description}>
+                                                    <Landmark size={12} className="text-blue-400" />
+                                                    <span className="text-[10px] font-black text-blue-400 uppercase tracking-tighter">
+                                                        {p.target_model_id?.split('_')[0]} {p.adjustment_value > 0 ? '+' : ''}{p.adjustment_value * 100}%
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
                                     <div className="text-yellow-500 font-bold tracking-widest text-xs uppercase mb-6 flex items-center gap-2">
                                         <span className="w-8 h-px bg-yellow-500/50" />
                                         BENCHMARK
@@ -395,9 +452,11 @@ export function ChampionLeague() {
                                     </div>
 
                                     <h3 className="text-lg font-bold text-white mb-2">{model.name}</h3>
-                                    <div className="flex flex-wrap gap-2 mb-4">
+                                    <div className="flex flex-wrap gap-2 mb-2">
                                         <span className="px-2 py-0.5 bg-zinc-800 text-zinc-400 text-[10px] font-bold uppercase rounded border border-zinc-700">{model.style}</span>
                                     </div>
+                                    {renderBadges(model.id)}
+
 
                                     <div className="text-3xl font-black text-white mb-1">
                                         ${totalFunds.toLocaleString(undefined, { maximumFractionDigits: 0 })}

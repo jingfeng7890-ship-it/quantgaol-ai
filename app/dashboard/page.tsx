@@ -7,7 +7,7 @@ import { SignalTable } from '@/components/dashboard/SignalTable';
 import { ParlayLab } from '@/components/dashboard/ParlayLab';
 
 import { useSearchParams } from 'next/navigation';
-import { CheckCircle, Zap } from 'lucide-react';
+import { CheckCircle, Zap, Medal, Star, ShieldCheck, Crown } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 // Fallback data for Consensus if not found in JSON or if named differently
@@ -30,6 +30,7 @@ export default function DashboardPage() {
     const [livePnL, setLivePnL] = useState(0);
     const [modelStats, setModelStats] = useState<any>(null);
     const [userHistory, setUserHistory] = useState<any[]>([]);
+    const [achievements, setAchievements] = useState<any[]>([]);
 
     useEffect(() => {
         if (clonedModel) {
@@ -41,14 +42,16 @@ export default function DashboardPage() {
                 return;
             }
 
-            fetch('/league_leaderboard.json')
+            fetch('/api/league')
                 .then(res => res.json())
                 .then(data => {
-                    const model = data.find((m: any) => m.name === clonedModel || clonedModel.includes(m.name));
+                    // Extract models from dictionary
+                    const modelsArray = Object.values(data.models || {});
+                    const model = modelsArray.find((m: any) => m.name === clonedModel || clonedModel.includes(m.name)) as any;
                     if (model) {
                         setModelStats(model);
-                        // Initial simulated P&L: Simulating a live session based on Daily Average
-                        const baseDaily = (model.roi_monthly / 30 / 100) * 1000;
+                        // Initial simulated P&L
+                        const baseDaily = (Number(model.stats?.roi || 0) / 30 / 100) * 1000;
                         setLivePnL(baseDaily + (Math.random() * 2));
                     }
                 })
@@ -72,12 +75,15 @@ export default function DashboardPage() {
         }
     }, [modelStats]);
 
-    // Fetch user betting history
+    // Fetch user betting history and achievements
     useEffect(() => {
-        fetch('/api/history')
-            .then(res => res.json())
-            .then(data => setUserHistory(data.history || []))
-            .catch(e => console.error("Failed to load user history", e));
+        Promise.all([
+            fetch('/api/history').then(res => res.json()),
+            fetch('/api/user-achievements').then(res => res.json())
+        ]).then(([historyData, archiveData]) => {
+            setUserHistory(historyData.history || []);
+            setAchievements(archiveData || []);
+        }).catch(e => console.error("Failed to load dashboard data", e));
     }, []);
 
 
@@ -192,8 +198,8 @@ export default function DashboardPage() {
                                     <div className="flex justify-between text-sm">
                                         <span className="text-zinc-500">Total P&L</span>
                                         <span className={`font-mono font-bold ${userHistory.reduce((sum, h) => sum + (h.total_pnl || 0), 0) >= 0
-                                                ? 'text-emerald-400'
-                                                : 'text-red-400'
+                                            ? 'text-emerald-400'
+                                            : 'text-red-400'
                                             }`}>
                                             ${userHistory.reduce((sum, h) => sum + (h.total_pnl || 0), 0).toFixed(2)}
                                         </span>
@@ -229,6 +235,31 @@ export default function DashboardPage() {
                                 </div>
                             </Card>
                         </>
+                    )}
+
+                    {/* Governor Medals */}
+                    {achievements.length > 0 && (
+                        <div className="space-y-4">
+                            <h2 className="text-sm font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                                <Medal size={16} className="text-blue-500" />
+                                Constitutional Medals
+                            </h2>
+                            <div className="grid grid-cols-2 gap-3">
+                                {achievements.map((ach, i) => (
+                                    <div key={i} className="flex items-center gap-3 p-3 bg-zinc-900/50 border border-zinc-800 rounded-xl group hover:border-blue-500/50 transition-all">
+                                        <div className="h-10 w-10 flex items-center justify-center bg-blue-500/10 rounded-lg text-blue-400 group-hover:scale-110 transition-transform">
+                                            {ach.achievement_type === 'The Oracle' ? <Star size={20} /> :
+                                                ach.achievement_type === 'Master Lobbyist' ? <ShieldCheck size={20} /> :
+                                                    <Crown size={20} />}
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-black text-white">{ach.achievement_type}</p>
+                                            <p className="text-[9px] text-zinc-500 font-bold uppercase">{new Date(ach.earned_at).toLocaleDateString()}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     )}
 
                     {/* AI Insight Snippet */}
