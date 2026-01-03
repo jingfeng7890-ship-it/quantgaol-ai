@@ -124,13 +124,13 @@ export function ChampionLeague() {
                         const history = data.raw || [];
                         const aggregatedHistory = data.history || [];
 
-                        setUserHistory(aggregatedHistory);
+                        setUserHistory(Array.isArray(aggregatedHistory) ? aggregatedHistory : []);
 
                         // Calculate Summaries
-                        const totalBets = history.length;
-                        const wonBets = history.filter((b: any) => b.status === 'WON').length;
-                        const totalPnl = history.reduce((acc: number, b: any) => acc + (Number(b.pnl) || 0), 0);
-                        const totalStake = history.reduce((acc: number, b: any) => acc + (Number(b.stake) || 0), 0);
+                        const totalBets = Array.isArray(history) ? history.length : 0;
+                        const wonBets = Array.isArray(history) ? history.filter((b: any) => b.status === 'WON').length : 0;
+                        const totalPnl = Array.isArray(history) ? history.reduce((acc: number, b: any) => acc + (Number(b.pnl) || 0), 0) : 0;
+                        const totalStake = Array.isArray(history) ? history.reduce((acc: number, b: any) => acc + (Number(b.stake) || 0), 0) : 0;
 
                         setStatsSummary({
                             user: {
@@ -167,13 +167,27 @@ export function ChampionLeague() {
                 // Fetch AI Achievements (RPG System)
                 fetch('/api/achievements')
                     .then(res => res.json())
-                    .then(data => setAchievements(data))
+                    .then(data => {
+                        if (Array.isArray(data)) {
+                            setAchievements(data);
+                        } else {
+                            console.error("Achievements data is not an array:", data);
+                            setAchievements([]);
+                        }
+                    })
                     .catch(e => console.error("Achievements load failed", e));
 
                 // Fetch Governance (Parliament)
                 fetch('/api/governance')
                     .then(res => res.json())
-                    .then(data => setGovernance(data.filter((p: any) => p.status === 'EXECUTED')))
+                    .then(data => {
+                        if (Array.isArray(data)) {
+                            setGovernance(data.filter((p: any) => p.status === 'EXECUTED'));
+                        } else {
+                            console.error("Governance data is not an array:", data);
+                            setGovernance([]);
+                        }
+                    })
                     .catch(e => console.error("Governance fetch failed", e));
             })
             .catch(err => {
