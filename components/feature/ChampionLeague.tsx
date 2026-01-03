@@ -432,7 +432,7 @@ export function ChampionLeague() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                         {tier1.map((model: any, idx: number) => {
                             const isFollowing = following.includes(model.id);
-                            const totalFunds = model.wallets.core + model.wallets.challenge + model.wallets.high_yield;
+                            const totalFunds = (model.wallets?.core || 0) + (model.wallets?.challenge || 0) + (model.wallets?.high_yield || 0);
 
                             return (
                                 <Card
@@ -486,7 +486,7 @@ export function ChampionLeague() {
                     {/* 3. TIER 2 MODELS (Grid of 3 - Darker/Smaller) */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 opacity-75 hover:opacity-100 transition-opacity">
                         {tier2.map((model: any, idx: number) => {
-                            const totalFunds = model.wallets.core + model.wallets.challenge + model.wallets.high_yield;
+                            const totalFunds = (model.wallets?.core || 0) + (model.wallets?.challenge || 0) + (model.wallets?.high_yield || 0);
                             const isFollowing = following.includes(model.id);
 
                             return (
