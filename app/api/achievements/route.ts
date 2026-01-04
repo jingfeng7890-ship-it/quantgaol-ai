@@ -13,7 +13,8 @@ export async function GET(req: NextRequest) {
             .order('earned_at', { ascending: false });
 
         if (error) throw error;
-        return NextResponse.json({ data });
+        if (error) throw error;
+        return NextResponse.json(data);
     } catch (error: any) {
         console.error("Error fetching achievements:", error);
         return NextResponse.json({ error: error.message }, { status: 500 });

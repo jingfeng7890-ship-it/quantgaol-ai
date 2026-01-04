@@ -25,7 +25,9 @@ class ChampionLeagueEngine:
                 {'model_id': 'deepseek_v3', 'name': 'DeepSeek V3', 'style': 'Balanced Quant', 'capability_radar': '{"Tactics": 9, "Underdogs": 8, "High-Value": 9, "Consistency": 6, "Speed": 7}'},
                 {'model_id': 'claude_opus_4_5', 'name': 'Claude Opus 4.5', 'style': 'Risk Averse', 'capability_radar': '{"Stability": 8, "Accuracy": 9, "Logic": 9, "Speed": 5, "Value": 7}'},
                 {'model_id': 'gpt_5_preview', 'name': 'GPT-5 Preview', 'style': 'Aggressive Growth', 'capability_radar': '{"Power": 9, "Vision": 8, "Risk": 9, "Scale": 7, "Alpha": 8}'},
-                {'model_id': 'qwen_3_max', 'name': 'Qwen 3 Max', 'style': 'Momentum Algo', 'capability_radar': '{"Momentum": 9, "Flow": 8, "Trend": 7, "Pattern": 8, "Execution": 6}'}
+                {'model_id': 'qwen_3_max', 'name': 'Qwen 3 Max', 'style': 'Momentum Algo', 'capability_radar': '{"Momentum": 9, "Flow": 8, "Trend": 7, "Pattern": 8, "Execution": 6}'},
+                {'model_id': 'grok_3_beta', 'name': 'Grok 3 Beta', 'style': 'Contrarian Tech', 'capability_radar': '{"Rebellion": 10, "Speed": 9, "Logic": 7, "Chaos": 8, "Meme": 9}'},
+                {'model_id': 'gemini_2_flash', 'name': 'Gemini 2.0 Flash', 'style': 'Speed Trader', 'capability_radar': '{"Speed": 10, "Volume": 9, "Latency": 10, "Data": 8, "Alpha": 7}'}
             ]
             self.supabase.table('ai_models').insert(models).execute()
         """
